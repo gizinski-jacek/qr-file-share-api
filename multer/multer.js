@@ -4,20 +4,25 @@ const { nanoid } = require('nanoid');
 
 const userFile = multer.diskStorage({
 	destination: async (req, file, cb) => {
-		let dir = nanoid(6);
-		try {
-			while (!fs.accessSync(`public/files/${dir}`)) {
-				dir = nanoid(6);
+		const { dirId } = req.body;
+		if (dirId) {
+			cb(null, `public/files/${dirId}`);
+		} else {
+			let newDir = nanoid(6);
+			try {
+				while (!fs.accessSync(`public/files/${newDir}`)) {
+					newDir = nanoid(6);
+				}
+			} catch (err) {
+				if (err.code === 'ENOENT') {
+					fs.mkdirSync(`public/files/${newDir}`, { recursive: true });
+				} else {
+					cb(err);
+				}
 			}
-		} catch (err) {
-			if (err.code === 'ENOENT') {
-				fs.mkdirSync(`public/files/${dir}`, { recursive: true });
-			} else {
-				cb(err);
-			}
+			req.body.fileDir = newDir;
+			cb(null, `public/files/${newDir}`);
 		}
-		req.body.fileDir = dir;
-		cb(null, `public/files/${dir}`);
 	},
 	filename: (req, file, cb) => {
 		cb(null, file.originalname);
