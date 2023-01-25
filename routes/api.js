@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { uploadFile } = require('../multer/multer');
+const fs = require('fs');
+const path = require('path');
+const { nanoid } = require('nanoid');
 
 // Save uploaded file from PC.
 router.post('/send-single-file', (req, res, next) => {
@@ -17,7 +20,7 @@ router.post('/send-single-file', (req, res, next) => {
 
 // Return URL to download file with phone.
 router.post('/send-single-file', (req, res, next) => {
-	const fileURL = `${process.env.API_URI}/public/files/${req.body.fileDir}/${req.file.originalname}`;
+	const fileURL = `${process.env.API_URI}/api/public/files/${req.body.fileDir}/${req.file.originalname}`;
 	// Set timer to delete folder
 	return res.status(200).json(fileURL);
 });
@@ -60,6 +63,13 @@ router.get('/code-check-dir/:dirId', (req, res, next) => {
 	} else {
 		return res.status(400).json('No directory.');
 	}
+});
+
+// Return requested file.
+router.get('/public/files/:dirId/:fileId', (req, res, next) => {
+	const { dirId, fileId } = req.params;
+	const file = path.resolve(`./public/files/${dirId}/${fileId}`);
+	return res.download(file);
 });
 
 module.exports = router;
