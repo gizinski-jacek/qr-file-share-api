@@ -7,6 +7,7 @@
 const app = require('../app');
 const debug = require('debug')('qr-file-share-api:server');
 const http = require('http');
+const { io } = require('../socketio/socketio');
 
 /**
  * Get port from environment and store in Express.
@@ -20,6 +21,15 @@ app.set('port', port);
  */
 
 const server = http.createServer(app);
+
+/**
+ * Attach socket.io to the server.
+ */
+
+const ioOptions = {
+	cors: { origin: process.env.CLIENT_URI, credentials: true },
+};
+io.attach(server, ioOptions);
 
 /**
  * Listen on provided port, on all network interfaces.
