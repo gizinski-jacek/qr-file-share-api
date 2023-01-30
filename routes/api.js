@@ -5,6 +5,7 @@ const { singleFile, multipleFiles } = require('../multer/multer');
 const fs = require('fs');
 const path = require('path');
 const { nanoid } = require('nanoid');
+const { socketEmits } = require('../socketio/socketio');
 
 // Save single uploaded file from PC.
 router.post('/send-single-file', (req, res, next) => {
@@ -14,9 +15,8 @@ router.post('/send-single-file', (req, res, next) => {
 		} else if (error) {
 			return res.status(500).json('Error saving file.');
 		}
-		const fileURL = path.resolve(
-			`./public/uploads/${req.body.fileDir}/${req.file.originalname}`
-		);
+		// Set timer to delete folder.
+		const fileURL = `${process.env.API_URI}/api/public/uploads/${req.body.fileDir}/${req.file.originalname}`;
 		return res.status(200).json(fileURL);
 	});
 });
@@ -29,8 +29,10 @@ router.post('/send-multiple-files', (req, res, next) => {
 		} else if (error) {
 			return res.status(500).json('Error saving files.');
 		}
-		const filesURLs = req.files.map((file) =>
-			path.resolve(`./public/uploads/${req.body.fileDir}/${file.originalname}`)
+		// Set timer to delete folder.
+		const filesURLs = req.files.map(
+			(file) =>
+				`${process.env.API_URI}/api/public/uploads/${req.body.fileDir}/${file.originalname}`
 		);
 		return res.status(200).json(filesURLs);
 	});
@@ -43,6 +45,7 @@ router.get('/receive-files', (req, res, next) => {
 		while (!fs.accessSync(`public/uploads/${newDir}`)) {
 			newDir = nanoid(6);
 		}
+		// Set timer to delete folder.
 	} catch (err) {
 		if (err.code === 'ENOENT') {
 			fs.mkdirSync(`public/uploads/${newDir}`);
@@ -61,8 +64,14 @@ router.post('/receive-files/:dirId', (req, res, next) => {
 		} else if (error) {
 			return res.status(500).json('Error saving file(s).');
 		} else {
-			// Set timer to delete folder.
-			// Notify correct socket.io client of uploaded files.
+			const { dirId } = req.params;
+			const filesData = req.files.map((file) => {
+				return {
+					...file,
+					downloadURL: `${process.env.API_URI}/api/public/uploads/${dirId}/${file.originalname}`,
+				};
+			});
+			socketEmits.new_file_alert(dirId, filesData);
 			return res.status(200).json({ success: true });
 		}
 	});
