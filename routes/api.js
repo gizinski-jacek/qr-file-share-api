@@ -15,9 +15,23 @@ router.post('/send-single-file', (req, res, next) => {
 		} else if (error) {
 			return res.status(500).json('Error saving file.');
 		}
-		// Set timer to delete folder.
-		const fileURL = `${process.env.API_URI}/api/public/uploads/${req.body.fileDir}/${req.file.originalname}`;
-		return res.status(200).json(fileURL);
+		// Set timer to delete folder. !!!
+		const { fileDir } = req.body;
+		const files = fs.readdirSync(`public/uploads/${fileDir}`);
+		const fileList = files.map((fileName) => {
+			const fileSizeInBytes = fs.statSync(
+				`public/uploads/${fileDir}/${fileName}`
+			).size;
+			const extension = fileName.slice(-3);
+			const file = {
+				name: fileName,
+				size: fileSizeInBytes,
+				extension: extension,
+				url: `${process.env.API_URI}/api/public/uploads/${fileDir}/${fileName}`,
+			};
+			return file;
+		});
+		return res.status(200).json(fileList);
 	});
 });
 
@@ -29,26 +43,37 @@ router.post('/send-multiple-files', (req, res, next) => {
 		} else if (error) {
 			return res.status(500).json('Error saving files.');
 		}
-		// Set timer to delete folder.
-		const filesURLs = req.files.map(
-			(file) =>
-				`${process.env.API_URI}/api/public/uploads/${req.body.fileDir}/${file.originalname}`
-		);
-		return res.status(200).json(filesURLs);
+		// Set timer to delete folder. !!!
+		const { fileDir } = req.body;
+		const files = fs.readdirSync(`public/uploads/${fileDir}`);
+		const fileList = files.map((fileName) => {
+			const fileSizeInBytes = fs.statSync(
+				`public/uploads/${fileDir}/${fileName}`
+			).size;
+			const extension = fileName.slice(-3);
+			const file = {
+				name: fileName,
+				size: fileSizeInBytes,
+				extension: extension,
+				url: `${process.env.API_URI}/api/public/uploads/${fileDir}/${fileName}`,
+			};
+			return file;
+		});
+		return res.status(200).json(fileList);
 	});
 });
 
 // Create directory for phone file(s) uploads.
-router.get('/receive-files', (req, res, next) => {
+router.get('/receive-files', async (req, res, next) => {
 	let newDir = nanoid(6);
 	try {
 		while (!fs.accessSync(`public/uploads/${newDir}`)) {
 			newDir = nanoid(6);
 		}
-		// Set timer to delete folder.
 	} catch (err) {
 		if (err.code === 'ENOENT') {
 			fs.mkdirSync(`public/uploads/${newDir}`);
+			// Set timer to delete folder. !!!
 			return res.status(200).json(newDir);
 		} else {
 			return res.status(400).json('Error creating directory.');
@@ -65,25 +90,54 @@ router.post('/receive-files/:dirId', (req, res, next) => {
 			return res.status(500).json('Error saving file(s).');
 		} else {
 			const { dirId } = req.params;
-			const filesData = req.files.map((file) => {
-				return {
-					...file,
-					downloadURL: `${process.env.API_URI}/api/public/uploads/${dirId}/${file.originalname}`,
+			const files = fs.readdirSync(`public/uploads/${dirId}`);
+			const fileList = files.map((fileName) => {
+				const fileSizeInBytes = fs.statSync(
+					`public/uploads/${dirId}/${fileName}`
+				).size;
+				const extension = fileName.slice(-3);
+				const file = {
+					name: fileName,
+					size: fileSizeInBytes,
+					extension: extension,
+					url: `${process.env.API_URI}/api/public/uploads/${dirId}/${fileName}`,
 				};
+				return file;
 			});
-			socketEmits.new_file_alert(dirId, filesData);
+			socketEmits.new_file_alert(dirId, fileList);
 			return res.status(200).json({ success: true });
 		}
 	});
 });
 
-// Check if directory exists.
-router.get('/code-dir-check/:dirId', (req, res, next) => {
+// Check if directory exists, create one if it does not.
+router.get('/code-dir-check/:dirId', async (req, res, next) => {
 	const { dirId } = req.params;
-	if (!fs.accessSync(`public/uploads/${dirId}`)) {
-		return res.status(200).json({ success: true });
-	} else {
-		return res.status(400).json('No directory.');
+	try {
+		if (!fs.accessSync(`public/uploads/${dirId}`)) {
+			const files = fs.readdirSync(`public/uploads/${dirId}`);
+			const fileList = files.map((fileName) => {
+				const fileSizeInBytes = fs.statSync(
+					`public/uploads/${dirId}/${fileName}`
+				).size;
+				const extension = fileName.slice(-3);
+				const file = {
+					name: fileName,
+					size: fileSizeInBytes,
+					extension: extension,
+					url: `${process.env.API_URI}/api/public/uploads/${dirId}/${fileName}`,
+				};
+				return file;
+			});
+			return res.status(200).json(fileList);
+		}
+	} catch (err) {
+		if (err.code === 'ENOENT') {
+			fs.mkdirSync(`public/uploads/${dirId}`);
+			return res.status(200).json({ success: true });
+		} else {
+			return res.status(400).json('No directory. Error creating directory.');
+		}
 	}
 });
 
