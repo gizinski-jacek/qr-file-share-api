@@ -7,6 +7,23 @@ const path = require('path');
 const { nanoid } = require('nanoid');
 const { socketEmits } = require('../socketio/socketio');
 
+const readDirFilesDetails = (dir) => {
+	const files = fs.readdirSync(`public/uploads/${dir}`);
+	const fileList = files.map((fileName) => {
+		const fileSizeInBytes = fs.statSync(
+			`public/uploads/${dir}/${fileName}`
+		).size;
+		const extension = fileName.slice(fileName.lastIndexOf('.'));
+		return {
+			name: fileName,
+			size: fileSizeInBytes,
+			extension: extension,
+			url: `${process.env.API_URI}/api/public/uploads/${dir}/${fileName}`,
+		};
+	});
+	return fileList;
+};
+
 // Save single uploaded file from PC.
 router.post('/send-single-file', (req, res, next) => {
 	singleFile.single('file')(req, res, (error) => {
@@ -17,20 +34,7 @@ router.post('/send-single-file', (req, res, next) => {
 		}
 		// Set timer to delete folder. !!!
 		const { fileDir } = req.body;
-		const files = fs.readdirSync(`public/uploads/${fileDir}`);
-		const fileList = files.map((fileName) => {
-			const fileSizeInBytes = fs.statSync(
-				`public/uploads/${fileDir}/${fileName}`
-			).size;
-			const extension = fileName.slice(-3);
-			const file = {
-				name: fileName,
-				size: fileSizeInBytes,
-				extension: extension,
-				url: `${process.env.API_URI}/api/public/uploads/${fileDir}/${fileName}`,
-			};
-			return file;
-		});
+		const fileList = readDirFilesDetails(fileDir);
 		return res.status(200).json(fileList);
 	});
 });
@@ -45,20 +49,7 @@ router.post('/send-multiple-files', (req, res, next) => {
 		}
 		// Set timer to delete folder. !!!
 		const { fileDir } = req.body;
-		const files = fs.readdirSync(`public/uploads/${fileDir}`);
-		const fileList = files.map((fileName) => {
-			const fileSizeInBytes = fs.statSync(
-				`public/uploads/${fileDir}/${fileName}`
-			).size;
-			const extension = fileName.slice(-3);
-			const file = {
-				name: fileName,
-				size: fileSizeInBytes,
-				extension: extension,
-				url: `${process.env.API_URI}/api/public/uploads/${fileDir}/${fileName}`,
-			};
-			return file;
-		});
+		const fileList = readDirFilesDetails(fileDir);
 		return res.status(200).json(fileList);
 	});
 });
@@ -90,20 +81,7 @@ router.post('/receive-files/:dirId', (req, res, next) => {
 			return res.status(500).json('Error saving file(s).');
 		} else {
 			const { dirId } = req.params;
-			const files = fs.readdirSync(`public/uploads/${dirId}`);
-			const fileList = files.map((fileName) => {
-				const fileSizeInBytes = fs.statSync(
-					`public/uploads/${dirId}/${fileName}`
-				).size;
-				const extension = fileName.slice(-3);
-				const file = {
-					name: fileName,
-					size: fileSizeInBytes,
-					extension: extension,
-					url: `${process.env.API_URI}/api/public/uploads/${dirId}/${fileName}`,
-				};
-				return file;
-			});
+			const fileList = readDirFilesDetails(dirId);
 			socketEmits.new_file_alert(dirId, fileList);
 			return res.status(200).json({ success: true });
 		}
@@ -115,20 +93,7 @@ router.get('/code-dir-check/:dirId', async (req, res, next) => {
 	const { dirId } = req.params;
 	try {
 		if (!fs.accessSync(`public/uploads/${dirId}`)) {
-			const files = fs.readdirSync(`public/uploads/${dirId}`);
-			const fileList = files.map((fileName) => {
-				const fileSizeInBytes = fs.statSync(
-					`public/uploads/${dirId}/${fileName}`
-				).size;
-				const extension = fileName.slice(-3);
-				const file = {
-					name: fileName,
-					size: fileSizeInBytes,
-					extension: extension,
-					url: `${process.env.API_URI}/api/public/uploads/${dirId}/${fileName}`,
-				};
-				return file;
-			});
+			const fileList = readDirFilesDetails(dirId);
 			return res.status(200).json(fileList);
 		}
 	} catch (err) {
