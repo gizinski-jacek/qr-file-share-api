@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { singleFile, multipleFiles } = require('../multer/multer');
+const { uploadFiles } = require('../multer/multer');
 const fs = require('fs');
 const path = require('path');
 const { nanoid } = require('nanoid');
 const { socketEmits } = require('../socketio/socketio');
+
+// Set timer in redis to fire off worker handling file/folder deletion. !!!
 
 const readDirFilesDetails = (dir) => {
 	const files = fs.readdirSync(`public/uploads/${dir}`);
@@ -13,9 +15,10 @@ const readDirFilesDetails = (dir) => {
 		const fileSizeInBytes = fs.statSync(
 			`public/uploads/${dir}/${fileName}`
 		).size;
+		const name = fileName.slice(fileName.indexOf('___') + 3);
 		const extension = fileName.slice(fileName.lastIndexOf('.'));
 		return {
-			name: fileName,
+			name: name,
 			size: fileSizeInBytes,
 			extension: extension,
 			url: `${process.env.API_URI}/api/public/uploads/${dir}/${fileName}`,
@@ -24,30 +27,14 @@ const readDirFilesDetails = (dir) => {
 	return fileList;
 };
 
-// Save single uploaded file from PC.
-router.post('/send-single-file', (req, res, next) => {
-	singleFile.single('file')(req, res, (error) => {
-		if (error instanceof multer.MulterError) {
-			return res.status(500).json(error.message);
-		} else if (error) {
-			return res.status(500).json('Error saving file.');
-		}
-		// Set timer to delete folder. !!!
-		const { fileDir } = req.body;
-		const fileList = readDirFilesDetails(fileDir);
-		return res.status(200).json(fileList);
-	});
-});
-
-// Save multiple uploaded files from PC.
-router.post('/send-multiple-files', (req, res, next) => {
-	multipleFiles.array('files')(req, res, (error) => {
+// Save uploaded files from PC.
+router.post('/send-files', (req, res, next) => {
+	uploadFiles.array('files')(req, res, (error) => {
 		if (error instanceof multer.MulterError) {
 			return res.status(500).json(error.message);
 		} else if (error) {
 			return res.status(500).json('Error saving files.');
 		}
-		// Set timer to delete folder. !!!
 		const { fileDir } = req.body;
 		const fileList = readDirFilesDetails(fileDir);
 		return res.status(200).json(fileList);
@@ -64,7 +51,6 @@ router.get('/receive-files', async (req, res, next) => {
 	} catch (err) {
 		if (err.code === 'ENOENT') {
 			fs.mkdirSync(`public/uploads/${newDir}`);
-			// Set timer to delete folder. !!!
 			return res.status(200).json(newDir);
 		} else {
 			return res.status(400).json('Error creating directory.');
@@ -74,7 +60,7 @@ router.get('/receive-files', async (req, res, next) => {
 
 // Save uploaded file(s) from phone.
 router.post('/receive-files/:dirId', (req, res, next) => {
-	multipleFiles.array('files')(req, res, (error) => {
+	uploadFiles.array('files')(req, res, (error) => {
 		if (error instanceof multer.MulterError) {
 			return res.status(500).json(error.message);
 		} else if (error) {
@@ -88,7 +74,7 @@ router.post('/receive-files/:dirId', (req, res, next) => {
 	});
 });
 
-// Check if directory exists, create one if it does not.
+// Check if directory exists and return file list, create one if it does not.
 router.get('/code-dir-check/:dirId', async (req, res, next) => {
 	const { dirId } = req.params;
 	try {
