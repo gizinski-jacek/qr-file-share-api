@@ -47,7 +47,7 @@ router.post('/receive-files/:dirId', (req, res, next) => {
 			const { dirId } = req.params;
 			const dirExists = directoryExists(dirId);
 			const fileList = readDirFilesDetails(dirExists);
-			socketEmits.new_file_alert(dirExists, fileList);
+			socketEmits.new_file_alert(dirExists.split('___')[0], fileList);
 			return res.status(200).json({ success: true });
 		}
 	});
