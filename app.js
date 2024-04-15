@@ -10,6 +10,7 @@ const compression = require('compression');
 
 const indexRouter = require('./routes/index');
 const apiRouter = require('./routes/api');
+const { cleanupDirectories } = require('./lib/utils');
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use(compression());
 
 app.use('/', indexRouter);
 app.use('/api', apiRouter);
+cleanupDirectories();
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
