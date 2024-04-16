@@ -38,7 +38,7 @@ app.use(compression());
 
 app.use('/', indexRouter);
 app.use('/api', apiRouter);
-cleanupDirectories();
+cleanupDirectories(5);
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
