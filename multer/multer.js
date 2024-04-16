@@ -1,7 +1,6 @@
 const fs = require('fs');
 const multer = require('multer');
-const { nanoid } = require('nanoid');
-const { directoryExists } = require('../lib/utils');
+const { directoryExists, nanoidCustom } = require('../lib/utils');
 
 const storage = multer.diskStorage({
 	destination: async (req, file, cb) => {
@@ -10,10 +9,10 @@ const storage = multer.diskStorage({
 		if (dirExists) {
 			cb(null, `public/uploads/${dirExists}`);
 		} else {
-			let newDir = nanoid(6);
+			let newDir = nanoidCustom();
 			const timestamp = Date.now();
 			while (directoryExists(newDir)) {
-				newDir = nanoid(6);
+				newDir = nanoidCustom();
 			}
 			newDir = newDir + '___' + timestamp;
 			fs.mkdirSync(`public/uploads/${newDir}`, { recursive: true });
