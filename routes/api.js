@@ -4,9 +4,13 @@ const multer = require('multer');
 const { uploadFiles } = require('../multer/multer');
 const fs = require('fs');
 const path = require('path');
-const { nanoid } = require('nanoid');
 const { socketEmits } = require('../socketio/socketio');
-const { readDirFilesDetails, directoryExists } = require('../lib/utils');
+const {
+	readDirFilesDetails,
+	directoryExists,
+	nanoidCustom,
+	directoryLifespan,
+} = require('../lib/utils');
 
 // Save uploads from PC.
 router.post('/send-files', (req, res, next) => {
@@ -18,22 +22,28 @@ router.post('/send-files', (req, res, next) => {
 		}
 		const { fileDir } = req.body;
 		const fileList = readDirFilesDetails(fileDir);
-		const code = fileDir.split('___')[0];
-		return res.status(200).json({ fileList, code: code });
+		const [dirId, dirTimestamp] = fileDir.split('___');
+		return res.status(200).json({
+			fileList: fileList,
+			dirCode: dirId,
+			dirDeleteTime: parseInt(dirTimestamp) + directoryLifespan,
+		});
 	});
 });
 
 // Create directory for uploads from phone.
 router.get('/receive-files', (req, res, next) => {
-	let newDir = nanoid(6);
+	let newDir = nanoidCustom();
 	while (directoryExists(newDir)) {
-		newDir = nanoid(6);
+		newDir = nanoidCustom();
 	}
 	const timestamp = Date.now();
 	fs.mkdirSync(`public/uploads/${newDir + '___' + timestamp}`, {
 		recursive: true,
 	});
-	return res.status(200).json(newDir);
+	return res
+		.status(200)
+		.json({ dirCode: newDir, dirDeleteTime: timestamp + directoryLifespan });
 });
 
 // Save uploads from phone.
@@ -59,13 +69,20 @@ router.get('/code-dir-check/:dirId', (req, res, next) => {
 	const dirExists = directoryExists(dirId);
 	if (dirExists) {
 		const fileList = readDirFilesDetails(dirExists);
-		return res.status(200).json(fileList);
+		const [dirId, dirTimestamp] = dirExists.split('___');
+		return res.status(200).json({
+			fileList: fileList,
+			dirDeleteTime: parseInt(dirTimestamp) + directoryLifespan,
+		});
 	} else {
 		const timestamp = Date.now();
 		fs.mkdirSync(`public/uploads/${dirId + '___' + timestamp}`, {
 			recursive: true,
 		});
-		return res.status(200).json({ success: true });
+		return res.status(200).json({
+			fileList: [],
+			dirDeleteTime: parseInt(timestamp) + directoryLifespan,
+		});
 	}
 });
 
