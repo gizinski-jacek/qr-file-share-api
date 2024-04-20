@@ -23,11 +23,11 @@ router.post('/send-files', (req, res, next) => {
 		const { fileDir } = req.body;
 		const fileList = readDirFilesDetails(fileDir);
 		const [dirId, dirTimestamp] = fileDir.split('___');
-		const timeNow = Date.now();
+		const timestamp = Date.now();
 		return res.status(200).json({
 			fileList: fileList,
 			dirCode: dirId,
-			dirTimeLeft: parseInt(dirTimestamp) + directoryLifespan - timeNow,
+			dirTimeLeft: parseInt(dirTimestamp) + directoryLifespan - timestamp,
 		});
 	});
 });
@@ -39,7 +39,7 @@ router.get('/receive-files', (req, res, next) => {
 		newDir = nanoidCustom();
 	}
 	const timestamp = Date.now();
-	fs.mkdirSync(`public/uploads/${newDir + '___' + now}`, {
+	fs.mkdirSync(`public/uploads/${newDir + '___' + timestamp}`, {
 		recursive: true,
 	});
 	return res.status(200).json({
@@ -72,10 +72,10 @@ router.get('/code-dir-check/:dirId', (req, res, next) => {
 	if (dirExists) {
 		const fileList = readDirFilesDetails(dirExists);
 		const [dirId, dirTimestamp] = dirExists.split('___');
-		const timeNow = Date.now();
+		const timestamp = Date.now();
 		return res.status(200).json({
 			fileList: fileList,
-			dirTimeLeft: parseInt(dirTimestamp) + directoryLifespan - timeNow,
+			dirTimeLeft: parseInt(dirTimestamp) + directoryLifespan - timestamp,
 		});
 	} else {
 		const timestamp = Date.now();
