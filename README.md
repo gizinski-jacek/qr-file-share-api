@@ -1,6 +1,6 @@
 # QR File Sharing (API)
 
-Express server handling files sharing for [QR File Sharing (Client) app](https://github.com/gizinski-jacek/qr-file-share) app.
+Express API handling file sharing for [QR File Sharing (Client)](https://github.com/gizinski-jacek/qr-file-share) app.
 
 ## Table of contents
 
@@ -17,7 +17,7 @@ Express server handling files sharing for [QR File Sharing (Client) app](https:/
 
 Github repo can be found [here](https://github.com/gizinski-jacek/qr-file-share-api).
 
-Frontend client can be found [here](https://github.com/gizinski-jacek/qr-file-share).
+Frontend client repo can be found [here](https://github.com/gizinski-jacek/qr-file-share).
 
 ## Getting Started
 
