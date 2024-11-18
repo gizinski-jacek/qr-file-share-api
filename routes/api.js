@@ -12,6 +12,17 @@ const {
 	directoryLifespan,
 } = require('../lib/utils');
 
+// Welcome response.
+router.get('/', (req, res, next) => {
+	res.send(
+		`<main>
+				<h2>QR File Sharing API.</h2>
+				<p><a href=https://github.com/gizinski-jacek/qr-file-share-api>Express API Github Repository</a></p>
+				<p><a href=https://github.com/gizinski-jacek/qr-file-share>ReactJS Client Github Repository</a></p>
+			</main>`
+	);
+});
+
 // Save uploads from PC.
 router.post('/send-files', (req, res, next) => {
 	uploadFiles.array('files')(req, res, (error) => {
